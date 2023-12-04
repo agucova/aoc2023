@@ -1,7 +1,6 @@
 from pathlib import Path
 from collections import defaultdict
 import re
-from math import prod
 
 INPUT_FILE = Path(__file__).parent.parent / "inputs" / "day3.inp"
 
@@ -38,7 +37,7 @@ for x, y in ASTERISKS:
         (x + dx, y + dy)
         for dx in (-1, 0, 1)
         for dy in (-1, 0, 1)
-        if not (dx == dy == 0)  # Exclude the asterisk itself
+        if not (dx == dy == 0)
     )
     # Find if there's a number in its boundary
     part_ids = set()
@@ -49,11 +48,6 @@ for x, y in ASTERISKS:
     if len(part_ids) == 2:
         # Gear found, store its gear ratio
         part_1, part_2 = [NUMBERS[part_id] for part_id in part_ids]
-        print(
-            f"Gear found at ({x}, {y}), with parts [{part_1}, {part_2}]"
-        )
         GEAR_RATIOS.append(part_1 * part_2)
-    else:
-        print(f"Discarded gear found at ({x}, {y}), with parts {[NUMBERS[part_id] for part_id in part_ids]}")
 
 print(sum(GEAR_RATIOS))

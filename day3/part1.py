@@ -10,7 +10,7 @@ NUMBERS: list[tuple[int, int, int, int]] = []  # x, y, length, number
 NUMBER_REGEX = re.compile(r"\d+")
 
 with open(INPUT_FILE) as f:
-    for y, line in enumerate(f.readlines()[:3]):
+    for y, line in enumerate(f.readlines()):
         # Find symbols
         symbol_matches = list(SYMBOL_REGEX.finditer(line))
         for symbol_match in symbol_matches:
@@ -25,20 +25,20 @@ with open(INPUT_FILE) as f:
             number = int(number_match.group(0))
             NUMBERS.append((x, y, length, number))
 
-print(SYMBOLS)
-print(NUMBERS)
 
 PART_NUMBERS = []
 for x, y, length, number in NUMBERS:
     # Find positions around number, including diagonally
     boundary = (
-        (x + dx, y + dy) for dx in range(-1, length + 1) for dy in range(-1, length + 1)
+        (x + i + dx, y + dy)
+        for dx in (-1, 0, 1)
+        for dy in (-1, 0, 1)
+        for i in range(length)
     )
     # Find if there's a symbol in the boundary
     for pos in boundary:
         if SYMBOLS[pos] is not None:
             PART_NUMBERS.append(number)
-            print(f"Found {number} at {pos}")
             break
 
 print(sum(PART_NUMBERS))

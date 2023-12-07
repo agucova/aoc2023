@@ -6,9 +6,11 @@ from bst import BinarySearchTree
 INPUT_FILE = Path(__file__).parent.parent / "inputs" / "day5.inp"
 
 
-def find_shortest_path(
+def find_path(
     mappings: dict[tuple[str, str], BinarySearchTree]
 ) -> list[tuple[str, str]]:
+    # Find a path through the mappings from location to seed
+    # and then return the reverse path
     available_mappings = set(mappings.keys())
     initial_mapping = [m for m in available_mappings if m[1] == "location"][0]
     available_mappings.remove(initial_mapping)
@@ -37,7 +39,7 @@ def find_interval_gaps(main_range: range, subintervals: list[range]) -> list[ran
     gaps = []
     # Initial gap
     if sorted_subintervals[0].start > main_range.start:
-        gaps.append(
+        gaps.append( 
             range(main_range.start, min(sorted_subintervals[0].start, main_range.stop))
         )
     # Gaps between subintervals
@@ -84,9 +86,9 @@ def map_interval_through_path(
     mappings: dict[tuple[str, str], BinarySearchTree],
     path: list[tuple[str, str]],
 ) -> list[range]:
+    # Map an interval through a path of mappings
     intervals = [interval]
     for source, target in path:
-        print(f"Mapping {intervals} through {source} to {target}")
         intervals = [
             target_interval
             for source_interval in intervals
@@ -102,6 +104,7 @@ MAP_REGEX = re.compile(r"(\w+)-to-(\w+) map:\n((?:\d+ \d+ \d+\n)+)", re.MULTILIN
 
 
 def extract_mappings(text: str) -> dict[tuple[str, str], BinarySearchTree]:
+    # Extract mappings from the input text
     mappings: dict[tuple[str, str], BinarySearchTree] = {}
     mapping_blocks = list(m.groups() for m in MAP_REGEX.finditer(text))
 
@@ -133,14 +136,12 @@ if __name__ == "__main__":
 
         # Find each block with a mapping
         mappings = extract_mappings(f.read())
+        path = find_path(mappings)
 
-        found = False
-        for path in find_shortest_path(mappings):
-            print(f"Trying path {path}")
-            intervals = map_interval_through_path(
-                range(0, 100), mappings, find_shortest_path(mappings)
+        location_ranges = []
+        for seed_range in seed_ranges:
+            location_ranges.extend(
+                map_interval_through_path(seed_range, mappings, path)
             )
-            if all(seed in intervals for seed in seed_ranges):
-                print(f"Found path {path}")
-                found = True
-                break
+            
+        print(min(location_ranges, key=lambda x: x.start).start)

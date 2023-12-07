@@ -1,0 +1,118 @@
+from pathlib import Path
+from dataclasses import dataclass, field
+import re
+from typing import Optional
+
+INPUT_FILE = Path(__file__).parent.parent / "inputs" / "day5.inp"
+
+
+@dataclass
+class TreeNode:
+    source_interval: range
+    target_interval: range
+    left: Optional["TreeNode"] = field(default=None)
+    right: Optional["TreeNode"] = field(default=None)
+
+
+@dataclass
+class BinarySearchTree:
+    root: Optional["TreeNode"] = field(default=None, repr=False)
+
+    def insert(self, source: range, target: range) -> None:
+        if self.root is None:
+            self.root = TreeNode(source, target)
+        else:
+            self._insert(source, target, self.root)
+
+    def _insert(self, source: range, target: range, node: TreeNode) -> None:
+        if source.stop <= node.source_interval.start:
+            if node.left is None:
+                node.left = TreeNode(source, target)
+            else:
+                self._insert(source, target, node.left)
+        elif node.source_interval.stop <= source.start:
+            if node.right is None:
+                node.right = TreeNode(source, target)
+            else:
+                self._insert(source, target, node.right)
+        elif (
+            source.start != node.source_interval.start
+            or source.stop != node.source_interval.stop
+        ):
+            raise ValueError("Overlapping interval provided.")
+
+    def map(self, value: int) -> int:
+        search_result = self.find(value)
+        if search_result is None:
+            return value
+        source_interval, target_interval = search_result
+        return target_interval.start + (value - source_interval.start)
+
+    def find(self, value: int) -> tuple[range, range] | None:
+        return self._find(value, self.root)
+
+    def _find(self, value: int, node: TreeNode | None) -> tuple[range, range] | None:
+        if node is None:
+            return None
+        elif value < node.source_interval.start:
+            return self._find(value, node.left)
+        elif value > node.source_interval.stop:
+            return self._find(value, node.right)
+        else:
+            return (node.source_interval, node.target_interval)
+        
+            
+
+
+MAP_REGEX = re.compile(r"(\w+)-to-(\w+) map:\n((?:\d+ \d+ \d+\n)+)", re.MULTILINE)
+with open(INPUT_FILE) as f:
+    seeds = [int(seed) for seed in f.readline().lstrip("seeds: ").split(" ")]
+    mappings: dict[tuple[str, str], BinarySearchTree] = {}
+
+    # Find each block with a mapping
+    mapping_blocks = list(m.groups() for m in MAP_REGEX.finditer(f.read()))
+    for match in mapping_blocks:
+        source, target, mapping = match
+        intervals = [
+            (
+                range(int(source_start), int(source_start) + int(range_length)),
+                range(int(dest_start), int(dest_start) + int(range_length)),
+            )
+            for dest_start, source_start, range_length in (
+                line.split(" ") for line in mapping.split("\n") if line
+            )
+        ]
+        print(intervals)
+        mapping = BinarySearchTree()
+        for source_interval, target_interval in intervals:
+            mapping.insert(source_interval, target_interval)
+        
+        mappings[(source, target)] = mapping
+
+    # Find the shortest path through the mappings
+    # that gets us from a seed number to a location number
+    available_mappings = set(mappings.keys())
+    initial_mapping = [m for m in available_mappings if m[1] == "location"][0]
+    available_mappings.remove(initial_mapping)
+    path = [initial_mapping]
+    while available_mappings:
+        for mapping in available_mappings:
+            if mapping[0] == path[-1][1]:
+                path.append(mapping)
+                available_mappings.remove(mapping)
+                break
+            elif mapping[1] == path[0][0]:
+                path.insert(0, mapping)
+                available_mappings.remove(mapping)
+                break
+        else:
+            raise ValueError("No path found through the mappings")
+        
+    
+    # Apply the mappings to the seeds iteratively
+    # to get the locations
+    for source, target in path:
+        mapping = mappings[(source, target)]
+        seeds = [mapping.map(seed) for seed in seeds]
+        
+    print(min(seeds))
